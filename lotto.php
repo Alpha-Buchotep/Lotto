@@ -182,7 +182,7 @@ $lottoAdatok = array(
 		"zaroSzam"=>50,
 		"huzandoSzamok"=>5,
 		"kezdoSzamB"=>1,
-		"zaroSzamB"=>10,
+		"zaroSzamB"=>12,
 		"huzandoSzamokB"=>2
 	)
 );
