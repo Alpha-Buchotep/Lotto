@@ -368,6 +368,8 @@ $lottoAdatok = array(
 			$veletlenSzam = -1;
 			$lottoSzamok = [];
 
+			// Globális változók inicializálása,
+			// hogy tudjuk használni a függvényben is
 			GLOBAL $kesleltetes;
 			GLOBAL $varakozasiIdo;
 
@@ -418,7 +420,7 @@ $lottoAdatok = array(
 					flush();
 					ob_flush();
 
-					// Az eslő számot azonnal kíírjuk, nincs késleltetés
+					// Az első számot azonnal kíírjuk, nincs késleltetés
 					if ($i > 0) {
 						usleep($varakozasiIdo);
 					}
