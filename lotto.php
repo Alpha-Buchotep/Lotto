@@ -3,6 +3,14 @@
 // Egyszerű lottószám húzó by Jonastos (nCore)
 // Ötös, hatos, hetes, Euro Jackpot lottó
 // PHP 7+
+//----------------------------------------
+
+//----------------------------------------
+// ini set - Max. 90 mp feldolgozási idő
+//----------------------------------------
+
+ini_set("max_execution_time", "90");
+
 //-------------------------------------------------
 // Fejléc / lokalizáció / időzóna + buffer + cache
 //-------------------------------------------------
@@ -139,6 +147,7 @@ input[type=button]:hover, input[type=submit]:hover {
 	border: none;
 }
 </style>
+<script>function autoScrolling() {window.scrollTo(0,document.body.scrollHeight)};</script>
 <?php
 
 //----------------------------------------------------------------
@@ -209,6 +218,9 @@ $lottoAdatok = array(
 
 	// késleltetés paraméter - 0-4 másodperc között, ha a felhasználó által nincs beállítva, akkor alapértelmezetten 0.8mp-re állítjuk
 	$kesleltetes = isset($_GET["kesleltetes"]) ? $_GET["kesleltetes"] : 8;
+
+	// Autoscroll paraméter - ha a felhasználó által nincs beállítva, akkor alapértelmezetten 1-re (van) állítjuk 
+	$autoscroll = isset($_GET["autoscroll"]) ? $_GET["autoscroll"] : 1;
 	
 	// ellenőrzés > ha a lottó típusa paraméter nem szám, akkor beállítjuk a lotto típust 0-ra (összes lottó típus)
 	if(is_numeric($lottoTipus) === false) {$lottoTipus = 0;}
@@ -219,17 +231,23 @@ $lottoAdatok = array(
 	// ellenőrzés > ha a késleltetés paraméter nem szám, akkor a késleletetést 0.8 mp-re állítjuk be
 	if(is_numeric($kesleltetes) === false) {$kesleltetes = 8;}
 
+	// ellenőrzés > ha az autoscroll paraméter nem szám, akkor a 1-re állítjuk az értéket (van)
+	if(is_numeric($autoscroll) === false) {$autoscroll = 1;}
+
 	// ellenőrzés - csak a 0 és 4 közötti lottó típusokat engedjük, mivel csak ezek vannak
 	if($lottoTipus >=0 || $lottoTipus <= 4) {$lottoTipus = $lottoTipus;} else {$lottoTipus = 0;}
 
-	// játékmezők számának korlátozása, ha több, mint 30-at próbálnánk megadni
+	// játékmezők számának korlátozása, ha több, mint a megengedett maximumot próbálnánk megadni
 	if($jatekMezokSzama > $maximumJatekMezok) {$jatekMezokSzama = $maximumJatekMezok;}
 
 	// játékmezők számának beállítása 2-re, ha a paraméter 0 vagy negatív szám
 	if($jatekMezokSzama <= 0) {$jatekMezokSzama = 2;}
 
 	// késleltetés ellenőrzése > min/max értékek, hogy a paraméterrel ne lehessen babrálni
-	if($kesleltetes < 0) {$kesleltetes = 8;} elseif ($kesleltetes > 40) {$kesleltetes = 8;}
+	if($kesleltetes < 0) {$kesleltetes = 8;} elseif ($kesleltetes > 50) {$kesleltetes = 8;}
+
+	// autoscroll érték ellenőrzése > min. 0 / max. 1
+	if($autoscroll < 0) {$autoscroll = 1;} elseif ($autoscroll > 1) {$autoscroll = 1;}
 
 	// döntés arról, melyik lottó típust választottuk (alapértelmezett játék (default): összes lottó -> id=0 típus)
 	switch ($lottoTipus) {
@@ -341,14 +359,30 @@ $lottoAdatok = array(
 		case 38:
 			$varakozasiIdo = 3800000;
 			break;
+		//---------------------------
 		case 40:
 			$varakozasiIdo = 4000000;
+			break;
+		case 42:
+			$varakozasiIdo = 4200000;
+			break;
+		case 44:
+			$varakozasiIdo = 4400000;
+			break;
+		case 46:
+			$varakozasiIdo = 4600000;
+			break;
+		case 48:
+			$varakozasiIdo = 4800000;
+			break;
+		case 50:
+			$varakozasiIdo = 5000000;
 			break;
 		//---------------------------
 		default:
 		$varakozasiIdo = 8;
 	}
-
+	
 	//------------------------------------------
 	// Számhúzó függvény
 	//------------------------------------------
@@ -439,7 +473,6 @@ $lottoAdatok = array(
 <!-- Form > Lenyíló menük -->
 <form action="lotto.php" method="GET" id="lotto" name="lotto" style="margin-top: 25px;">
 
-
 <div class="vezerlok">
 
 	<select id="tipus" name="tipus" style="width: 48%;">
@@ -493,13 +526,13 @@ $lottoAdatok = array(
 
 	<br />
 
-	<select id="kesleltetes" name="kesleltetes" style="width: 97%; text-align: center; margin: 6px;">
+	<select id="kesleltetes" name="kesleltetes" style="width: 48%;">
 		<option value=" " >Késleltetés</option>
 
 		<?php 
 
 		// ciklussal töltjük fel a késleltetési választómezőt
-		for ($i = 0; $i <= 40; $i+=2) {
+		for ($i = 0; $i <= 50; $i+=2) {
 			if($kesleltetes == $i && isset($_GET["kesleltetes"]) == true) {
 
 		?>
@@ -517,6 +550,20 @@ $lottoAdatok = array(
 
 		<?php }} ?>
 
+	</select>
+
+	<select id="autoscroll" name="autoscroll" style="width: 48%;">
+		<option value=" " >Autoscroll</option>
+		<?php if($autoscroll == 0) { ?>
+		<option value="0" selected>Nincs autoscroll</option>
+		<option value="1">Van autoscroll</option>
+		<?php } elseif($autoscroll == 1) { ?>
+		<option value="0">Nincs autoscroll</option>
+		<option value="1" selected>Van autoscroll</option>
+		<?php } else { ?>
+		<option value="0">Nincs autoscroll</option>
+		<option value="1" selected>Van autoscroll</option>
+		<?php } ?>
 	</select>
 
 </div>
@@ -541,7 +588,13 @@ $lottoAdatok = array(
 if ($_SERVER["REQUEST_METHOD"] === "GET" && isset($_GET["tipus"])){
 
 	// PHP-vel írunk a html oldalra Javascript kódot - ez a Javascript kód eltünteti a 'relax' nevű div-et
+	// + Auto scroll start
 	echo "<script>document.getElementById('relax').style.display = 'none';</script>";
+
+	// Auto scroll start
+	if($autoscroll == 1) {
+		echo "<script>auScr = setInterval(autoScrolling, 1000);</script>";
+	}
 
 	//------------------------------------------
 	// Döntés arról, hogy csak egy típusú lottót játszunk, vagy
@@ -551,7 +604,7 @@ if ($_SERVER["REQUEST_METHOD"] === "GET" && isset($_GET["tipus"])){
 	// egy típusú lottó (csak ötös, hatos, hetes stb. - ha 0 lenne, az az összes lottót jelentené)
 	if($lottoTipus != 0) {
 
-		echo "<center><h2><b>A kért lottó típus számainak húzása (" . $lottoJatekNeve . ")</b></h2>";
+		echo "<center><h2><b>A(z) " . $lottoJatekNeve . " számok húzása</b></h2>";
 		echo "<hr style='margin-top: 20px; margin-bottom: 10px; border-top: 1px dashed red; width: 60%; opacity: 0.6;'>";
 
 		// Euro Jackpot számok húzása - 4-es típus (1x5 + 1x2 db szám > A és B mezők)
@@ -598,7 +651,6 @@ if ($_SERVER["REQUEST_METHOD"] === "GET" && isset($_GET["tipus"])){
 		}
 		
 		}
-
 		echo "</center>";
 
 	}
@@ -606,7 +658,7 @@ if ($_SERVER["REQUEST_METHOD"] === "GET" && isset($_GET["tipus"])){
 	// összes lottó típusból húzunk számokat
 	elseif ($lottoTipus == 0) {
 
-		echo "<div style='text-align: center;'><h2><b>A kért lottó típusok számainak húzása (" . $lottoJatekNeve . ")</b></h2>";
+		echo "<div style='text-align: center;'><h2><b>Az " . $lottoJatekNeve . " számok húzása</b></h2>";
 		echo "<hr style='margin-top: 20px; margin-bottom: 10px; border-top: 1px dashed red; width: 60%; opacity: 0.6;'>";
 
 		// Számok húzása -> Ötös lottó - ahány játékmező ki lett választva
@@ -656,6 +708,12 @@ if ($_SERVER["REQUEST_METHOD"] === "GET" && isset($_GET["tipus"])){
 		echo "</div>";
 
 	}
+
+	// Auto scroll stop
+	if($autoscroll == 1) {
+		echo "<script>clearInterval(auScr);window.scrollTo(0,document.body.scrollHeight);</script>";
+	}
+	
 }
 ?>
 </body>
