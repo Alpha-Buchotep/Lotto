@@ -1,8 +1,9 @@
 <?php
 //-------------------------------------------------
-// Egyszerű lottószám húzó by Jonastos (nCore)
+// Egyszerű lottószám húzó PHP nyelven
 // Ötös, hatos, hetes, Euro Jackpot lottó
-// PHP 7+
+// Szükséges PHP verzió: PHP 7+
+// Tanulási céllal készítette: C2H5Cl
 //----------------------------------------
 
 //----------------------------------------
@@ -14,6 +15,7 @@ ini_set("max_execution_time", "90");
 //-------------------------------------------------
 // Fejléc / lokalizáció / időzóna + buffer + cache
 //-------------------------------------------------
+
 date_default_timezone_set("Europe/Budapest");
 setlocale(LC_ALL,"hungarian");
 header("Content-Type: text/html; charset=utf-8");
@@ -152,7 +154,7 @@ input[type=button]:hover, input[type=submit]:hover {
 
 //----------------------------------------------------------------
 // A lottó típusok adatait tároló tömb
-//  az id megegyezik a tömb indexének számával - a tömbök
+// az id megegyezik a tömb indexének számával - a tömbök
 // elemei(index) a legtöbb programozási nyelvben 0-val kezdődnek
 //----------------------------------------------------------------
 
@@ -208,19 +210,19 @@ $lottoAdatok = array(
 	// a számkiíró ciklusban használt változó, a várakozási időt tárolja
 	// értéke mikroszekundumban van (µs) (1 másodperc = 1000000 µs)
 	// értékadás később
-	$varakozasiIdo;
+	$varakozasiIdo = 0;
 
 	// lottó típusa - ha nincs kiválasztva semmelyik típus a felhasználó által, akkor 0-ra állítjuk (összes lottó)
-	$lottoTipus = isset($_GET["tipus"]) ? $_GET["tipus"] : 0;
+	$lottoTipus = isset($_GET["tipus"]) ? filter_input(INPUT_GET, "tipus", FILTER_SANITIZE_NUMBER_INT) : 0;
 	
 	// játékmezők száma paraméter - ha a felhasználó által nincs beállítva, akkor alapértelmezetten 2-re állítjuk be
-	$jatekMezokSzama = isset($_GET["jatekMezok"]) ? $_GET["jatekMezok"] : 2;
+	$jatekMezokSzama = isset($_GET["jatekMezok"]) ? filter_input(INPUT_GET, "jatekMezok", FILTER_SANITIZE_NUMBER_INT) : 2;
 
-	// késleltetés paraméter - 0-4 másodperc között, ha a felhasználó által nincs beállítva, akkor alapértelmezetten 0.8mp-re állítjuk
-	$kesleltetes = isset($_GET["kesleltetes"]) ? $_GET["kesleltetes"] : 8;
+	// késleltetés paraméter - 0-4 másodperc között, ha a felhasználó által nincs beállítva, akkor alapértelmezetten 0.6mp-re állítjuk
+	$kesleltetes = isset($_GET["kesleltetes"]) ? filter_input(INPUT_GET, "kesleltetes", FILTER_SANITIZE_NUMBER_INT) : 6;
 
 	// Autoscroll paraméter - ha a felhasználó által nincs beállítva, akkor alapértelmezetten 1-re (van) állítjuk 
-	$autoscroll = isset($_GET["autoscroll"]) ? $_GET["autoscroll"] : 1;
+	$autoscroll = isset($_GET["autoscroll"]) ? filter_input(INPUT_GET, "autoscroll", FILTER_SANITIZE_NUMBER_INT) : 1;
 	
 	// ellenőrzés > ha a lottó típusa paraméter nem szám, akkor beállítjuk a lotto típust 0-ra (összes lottó típus)
 	if(is_numeric($lottoTipus) === false) {$lottoTipus = 0;}
@@ -229,7 +231,7 @@ $lottoAdatok = array(
 	if(is_numeric($jatekMezokSzama) === false) {$jatekMezokSzama = 2;}
 
 	// ellenőrzés > ha a késleltetés paraméter nem szám, akkor a késleletetést 0.8 mp-re állítjuk be
-	if(is_numeric($kesleltetes) === false) {$kesleltetes = 8;}
+	if(is_numeric($kesleltetes) === false) {$kesleltetes = 6;}
 
 	// ellenőrzés > ha az autoscroll paraméter nem szám, akkor a 1-re állítjuk az értéket (van)
 	if(is_numeric($autoscroll) === false) {$autoscroll = 1;}
@@ -244,145 +246,17 @@ $lottoAdatok = array(
 	if($jatekMezokSzama <= 0) {$jatekMezokSzama = 2;}
 
 	// késleltetés ellenőrzése > min/max értékek, hogy a paraméterrel ne lehessen babrálni
-	if($kesleltetes < 0) {$kesleltetes = 8;} elseif ($kesleltetes > 50) {$kesleltetes = 8;}
+	if($kesleltetes < 0) {$kesleltetes = 6;} elseif ($kesleltetes > 50) {$kesleltetes = 6;}
+	
+	// várakozási idő beállítása (microsec.)
+	$varakozasiIdo = $kesleltetes * 100000;
 
 	// autoscroll érték ellenőrzése > min. 0 / max. 1
 	if($autoscroll < 0) {$autoscroll = 1;} elseif ($autoscroll > 1) {$autoscroll = 1;}
 
-	// döntés arról, melyik lottó típust választottuk (alapértelmezett játék (default): összes lottó -> id=0 típus)
-	switch ($lottoTipus) {
+	// Választott lottó nevének beolvasása
+	$lottoJatekNeve = $lottoAdatok[$lottoTipus]["nev"];
 
-		// Összes lottó
-		case 0:
-		$lottoJatekNeve = $lottoAdatok[0]["nev"];
-		break;
-
-		// Ötös lottó
-		case 1:
-		$lottoJatekNeve = $lottoAdatok[1]["nev"];
-		break;
-
-		// Hatos lottó
-		case 2:
-		$lottoJatekNeve = $lottoAdatok[2]["nev"];
-		break;
-
-		// Hetes lottó
-		case 3:
-		$lottoJatekNeve = $lottoAdatok[3]["nev"];
-		break;
-
-		// Euro Jackpot
-		case 4:
-		$lottoJatekNeve = $lottoAdatok[4]["nev"];
-		break;
-
-		// Alapértelmezett lottó típus 
-		// csak akkor érvényesül, ha nincs értelmezhető paraméter / választás
-		default:
-		$lottoTipus = 0;
-		$lottoJatekNeve = $lottoAdatok[0]["nev"];
-	}
-
-	// Várakozás kezelése
-	// 0 - 5 másodperc között lehet kérni
-	// a form lenyíló menüjét egy for ciklus tölti fel,
-	// a Value értékei +=2 értékkel növekszenek azért,
-	// hogy a lenyíló menü barátságos szövegeit a
-	// ciklus $i/10 értékével lehessen kiiratni
-	// pl. ha a $i = 18, akkor
-	// a barátságos szöveg > 18/10 = 1.8 másodperc
-	//----------------------------------------------------
-	// a 0 értéket azért nem vizsgáljuk, mert azt a számokat
-	// kiíró függvény ellenőrzi, ugyanis ha az érték 0, akkor
-	// nincs késleltetés, tehát le sem fut a késleltetést
-	// kezelő elágazás
-
-	switch ($kesleltetes) {
-		case 2:
-			$varakozasiIdo = 200000;
-			break;
-		case 4:
-			$varakozasiIdo = 400000;
-			break;
-		case 6:
-			$varakozasiIdo = 600000;
-			break;
-		case 8:
-			$varakozasiIdo = 800000;
-			break;
-		case 10:
-			$varakozasiIdo = 1000000;
-			break;
-		//---------------------------
-		case 12:
-			$varakozasiIdo = 1200000;
-			break;
-		case 14:
-			$varakozasiIdo = 1400000;
-			break;
-		case 16:
-			$varakozasiIdo = 1600000;
-			break;
-		case 18:
-			$varakozasiIdo = 1800000;
-			break;
-		case 20:
-			$varakozasiIdo = 2000000;
-			break;
-		//---------------------------
-		case 22:
-			$varakozasiIdo = 220000;
-			break;
-		case 24:
-			$varakozasiIdo = 2400000;
-			break;
-		case 26:
-			$varakozasiIdo = 2600000;
-			break;
-		case 28:
-			$varakozasiIdo = 2800000;
-			break;
-		case 30:
-			$varakozasiIdo = 3000000;
-			break;
-		//---------------------------
-		case 32:
-			$varakozasiIdo = 3200000;
-			break;
-		case 34:
-			$varakozasiIdo = 3400000;
-			break;
-		case 36:
-			$varakozasiIdo = 3600000;
-			break;
-		case 38:
-			$varakozasiIdo = 3800000;
-			break;
-		//---------------------------
-		case 40:
-			$varakozasiIdo = 4000000;
-			break;
-		case 42:
-			$varakozasiIdo = 4200000;
-			break;
-		case 44:
-			$varakozasiIdo = 4400000;
-			break;
-		case 46:
-			$varakozasiIdo = 4600000;
-			break;
-		case 48:
-			$varakozasiIdo = 4800000;
-			break;
-		case 50:
-			$varakozasiIdo = 5000000;
-			break;
-		//---------------------------
-		default:
-		$varakozasiIdo = 8;
-	}
-	
 	//------------------------------------------
 	// Számhúzó függvény
 	//------------------------------------------
@@ -588,7 +462,6 @@ $lottoAdatok = array(
 if ($_SERVER["REQUEST_METHOD"] === "GET" && isset($_GET["tipus"])){
 
 	// PHP-vel írunk a html oldalra Javascript kódot - ez a Javascript kód eltünteti a 'relax' nevű div-et
-	// + Auto scroll start
 	echo "<script>document.getElementById('relax').style.display = 'none';</script>";
 
 	// Auto scroll start
@@ -614,12 +487,12 @@ if ($_SERVER["REQUEST_METHOD"] === "GET" && isset($_GET["tipus"])){
 			for ($i = 0; $i < $jatekMezokSzama; $i++) {
 
 				// Számok húzása > Euro Jackpot A mező
-				echo "<b style='font-size: 24px;'>A játékmező " . ($i+1) . "<br /><br />";
+				echo "<b style='font-size: 24px;'>A játékmező #" . ($i+1) . "<br /><br />";
 				// lottoSzamHuzas függvény hívása a tömbböl kikeresett paraméterekkel
 				lottoSzamHuzas($lottoAdatok[$lottoTipus]["huzandoSzamok"], $lottoAdatok[$lottoTipus]["kezdoSzam"], $lottoAdatok[$lottoTipus]["zaroSzam"], $lottoAdatok[$lottoTipus]["nev"]);
 
 				// Számok húzása > Euro Jackpot B mező
-				echo "<b style='font-size: 24px;'>B játékmező " . ($i+1) . "<br /><br />";
+				echo "<b style='font-size: 24px;'>B játékmező #" . ($i+1) . "<br /><br />";
 				// lottoSzamHuzas függvény hívása a tömbböl kikeresett paraméterekkel
 				lottoSzamHuzas($lottoAdatok[$lottoTipus]["huzandoSzamokB"], $lottoAdatok[$lottoTipus]["kezdoSzamB"], $lottoAdatok[$lottoTipus]["zaroSzamB"], $lottoAdatok[$lottoTipus]["nev"]);
 			}
