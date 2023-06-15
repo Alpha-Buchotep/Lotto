@@ -285,7 +285,7 @@ $lottoAdatok = array(
 	}
 
 	// Várakozás kezelése
-	// 0 - 4 másodperc között lehet kérni
+	// 0 - 5 másodperc között lehet kérni
 	// a form lenyíló menüjét egy for ciklus tölti fel,
 	// a Value értékei +=2 értékkel növekszenek azért,
 	// hogy a lenyíló menü barátságos szövegeit a
