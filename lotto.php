@@ -10,7 +10,7 @@
 // ini set - Max. 90 mp feldolgozási idő
 //----------------------------------------
 
-ini_set("max_execution_time", "90");
+ini_set("max_execution_time", 90);
 
 //-------------------------------------------------
 // Fejléc / lokalizáció / időzóna + buffer + cache
@@ -591,3 +591,4 @@ if ($_SERVER["REQUEST_METHOD"] === "GET" && isset($_GET["tipus"])){
 ?>
 </body>
 </html>
+
