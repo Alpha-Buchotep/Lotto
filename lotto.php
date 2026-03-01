@@ -7,10 +7,17 @@
 //----------------------------------------
 
 //----------------------------------------
-// ini set - Max. 90 mp feldolgozási idő
+// ini set - Max. X mp feldolgozási idő
 //----------------------------------------
 
-ini_set("max_execution_time", 90);
+// ini_set("max_execution_time", 600);
+
+// --------------------------------------------------
+// script timeout - Max. X mp-ig futhat a script
+// újra meghíváskor resetelődik a timer
+// --------------------------------------------------
+
+set_time_limit(15);
 
 //-------------------------------------------------
 // Fejléc / lokalizáció / időzóna + buffer + cache
@@ -211,6 +218,9 @@ $lottoAdatok = array(
 	// értéke mikroszekundumban van (µs) (1 másodperc = 1000000 µs)
 	// értékadás később
 	$varakozasiIdo = 0;
+	
+	// tized másodpercben (2 = két tized | 10 = 1 másodperc | 100 = 10 mp)
+	$maxVarakozasiIdo = 60;
 
 	// lottó típusa - ha nincs kiválasztva semmelyik típus a felhasználó által, akkor 0-ra állítjuk (összes lottó)
 	$lottoTipus = isset($_GET["tipus"]) ? filter_input(INPUT_GET, "tipus", FILTER_SANITIZE_NUMBER_INT) : 0;
@@ -236,6 +246,15 @@ $lottoAdatok = array(
 	// ellenőrzés > ha az autoscroll paraméter nem szám, akkor a 1-re állítjuk az értéket (van)
 	if(is_numeric($autoscroll) === false) {$autoscroll = 1;}
 
+	// ellenőrzés > ha a max. várakozási idő nem szám, akkor alapértelmezettet állítunk be (30 = 3 mp)
+	if(is_numeric($maxVarakozasiIdo) === false) {$maxVarakozasiIdo = 30;}
+
+	// ellenőrzés > ha a max. várakozási idő nagyobb 100-nál (10 mp), akkor 100-ra állítjuk
+	if ($maxVarakozasiIdo > 100) {$maxVarakozasiIdo = 100;}
+
+	// ellenőrzés > ha a max. várakozási kisebb 2-nél (0.2 mp) akkor 1 mp-re állítjuk
+	if ($maxVarakozasiIdo < 2) {$maxVarakozasiIdo = 10;}
+
 	// ellenőrzés - csak a 0 és 4 közötti lottó típusokat engedjük, mivel csak ezek vannak
 	if($lottoTipus >=0 || $lottoTipus <= 4) {$lottoTipus = $lottoTipus;} else {$lottoTipus = 0;}
 
@@ -246,7 +265,7 @@ $lottoAdatok = array(
 	if($jatekMezokSzama <= 0) {$jatekMezokSzama = 2;}
 
 	// késleltetés ellenőrzése > min/max értékek, hogy a paraméterrel ne lehessen babrálni
-	if($kesleltetes < 0) {$kesleltetes = 6;} elseif ($kesleltetes > 50) {$kesleltetes = 6;}
+	if($kesleltetes < 0) {$kesleltetes = 6;} elseif ($kesleltetes > $maxVarakozasiIdo) {$kesleltetes = 6;}
 	
 	// várakozási idő beállítása (microsec.)
 	$varakozasiIdo = $kesleltetes * 100000;
@@ -323,6 +342,9 @@ $lottoAdatok = array(
 
 				// Van késleltetés beállítva, kezeljük
 				if ($kesleltetes > 0) {
+					
+					// Script timeout számítása + 5 mp ráhagyás
+					$scriptTimeout = $varakozasiIdo + 5000000;
 
 					//Puffer kiiratása
 					flush();
@@ -332,7 +354,14 @@ $lottoAdatok = array(
 					if ($i > 0) {
 						usleep($varakozasiIdo);
 					}
+				} else {
+					// Script timeout 10 mp ráhagyás
+					$scriptTimeout = 10000000;
 				}
+
+				// Innentől újra ennyi mp-ig futhat a script
+				//set_time_limit(15);
+				set_time_limit($scriptTimeout);
 
 			} // ciklus vége
 			
@@ -351,79 +380,52 @@ $lottoAdatok = array(
 
 	<select id="tipus" name="tipus" style="width: 48%;">
 		<option value=" " >Lottó típusa</option>
-
 		<?php 
-
 		// ciklussal töltjük fel a lottó típusa lenyíló menüt
 		for ($i = 0; $i < 5; $i++) {
 			// ha korábban már kijelöltünk egy lottó típust és a ciklus ehhez a típusú lottó listázásához ér, akkor azt kiválasztja
 			if($lottoAdatok[$i]["id"] == $lottoTipus && isset($_GET["tipus"]) == true) {
-
 		?>
-
-		<option value="<?php echo $lottoAdatok[$i]["id"]; ?>" selected><?php echo $lottoAdatok[$i]["nev"]; ?></option>
-
+				<option value="<?php echo $lottoAdatok[$i]["id"]; ?>" selected><?php echo $lottoAdatok[$i]["nev"]; ?></option>
 		<?php }
 		// nem a korábban kijelölt lottó típust listázza a ciklus vagy még nem jelöltünk meg semmit
-		else { ?>
-
-		<option value="<?php echo $lottoAdatok[$i]["id"]; ?>"><?php echo $lottoAdatok[$i]["nev"]; ?></option>
-
+			else { ?>
+				<option value="<?php echo $lottoAdatok[$i]["id"]; ?>"><?php echo $lottoAdatok[$i]["nev"]; ?></option>
 		<?php }} ?>
-
 	</select>
 
 	<select id="jatekMezok" name="jatekMezok" style="width: 48%;">
 		<option value=" " >Játékmezők száma</option>
-
 		<?php 
-
 		// ciklussal töltjük fel a játékmezők számát
 		for ($i = 1; $i <= $maximumJatekMezok; $i++) {
 			// ha korábban már kiválasztottuk a játékmezők számát és a ciklus ehhez a számhoz ér, akkor azt kiválasztja
 			if($jatekMezokSzama == $i && isset($_GET["tipus"]) == true) {
-
 		?>
-
-		<option value="<?php echo $i; ?>" selected><?php echo $i; ?></option>
-
+				<option value="<?php echo $i; ?>" selected><?php echo $i; ?></option>
 		<?php }
-
-		// nem a korábban kiválasztott játékmezők számánál tart a ciklus
-		else { ?>
-
-		<option value="<?php echo $i; ?>"><?php echo $i; ?></option>
-
+			// nem a korábban kiválasztott játékmezők számánál tart a ciklus
+			else { ?>
+				<option value="<?php echo $i; ?>"><?php echo $i; ?></option>
 		<?php }} ?>
-
 	</select>
 
 	<br />
 
 	<select id="kesleltetes" name="kesleltetes" style="width: 48%;">
 		<option value=" " >Késleltetés</option>
-
 		<?php 
-
 		// ciklussal töltjük fel a késleltetési választómezőt
-		for ($i = 0; $i <= 50; $i+=2) {
+		for ($i = 0; $i <= $maxVarakozasiIdo; $i+=2) {
 			if($kesleltetes == $i && isset($_GET["kesleltetes"]) == true) {
-
 		?>
-
-		<option value="<?php echo $i; ?>" selected><?php if ($i == 0) {echo "Nincs késleltetés";} else {echo $i/10 . " másodperc";}?></option>
-
+				<option value="<?php echo $i; ?>" selected><?php if ($i == 0) {echo "Nincs késleltetés";} else {echo $i/10 . " másodperc";}?>
+				</option>
 		<?php }
-
 		// nem a korábban kiválasztott játékmezők számánál tart a ciklus
-		else {
-
-		?>
-
-		<option value="<?php echo $i; ?>"><?php if ($i == 0) {echo "Nincs késleltetés";} else {echo $i/10 . " másodperc";}?></option>
-
+			else {?>
+				<option value="<?php echo $i; ?>"><?php if ($i == 0) {echo "Nincs késleltetés";} else {echo $i/10 . " másodperc";}?></option>
 		<?php }} ?>
-
 	</select>
 
 	<select id="autoscroll" name="autoscroll" style="width: 48%;">
@@ -449,7 +451,7 @@ $lottoAdatok = array(
 
 	<div id="relax" class="szazasDiv">
 		<center>
-			<img src="loader_macska4.gif" class="kepArnyek" alt="" title="" />
+			<img src="loader.gif" class="kepArnyek" alt="" title="" />
 		</center>
 	</div>
 
@@ -591,4 +593,3 @@ if ($_SERVER["REQUEST_METHOD"] === "GET" && isset($_GET["tipus"])){
 ?>
 </body>
 </html>
-
